@@ -1,6 +1,5 @@
 # cogs/music.py
 import discord
-from discord.enums import E
 from discord.ext import commands
 import yt_dlp
 
