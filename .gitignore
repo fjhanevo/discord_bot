@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / Cython files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+.env/
+.venv/
+env/
+venv/
+*.env
+
+# Jupyter and notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Unit test / coverage reports
+.coverage
+htmlcov/
+.tox/
+.cache/
+coverage.xml
+nosetests.xml
+test-results.xml
+pytest_cache/
+
+# MyPy and Pyright caches
+.mypy_cache/
+.pyright/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Data files
+*.npy
+*.npz
+*.h5
+*.pkl
+*.sqlite3
+data/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
