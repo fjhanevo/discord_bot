@@ -8,8 +8,33 @@ class Music(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        #TODO: implement playlist functionality
-        # self.queue = []
+        self.queue = {}
+
+    def _get_queue(self, guild_id: int):
+        """ Helper function to get the queue, or create one if one doesn't exist """
+        if guild_id not in self.queue:
+            self.queue[guild_id] = []
+        return self.queue[guild_id]
+    
+    def _play_next(self, ctx: commands.Context):
+        guild_id = ctx.guild.id
+        queue = self._get_queue(guild_id)
+
+        if not queue:
+            return
+
+        song = queue.pop(0)
+        video_url = song['stream_url']
+
+        ffmpeg_options = {
+            'before_options': '-reconnect 1 -reconnect_streamed 1',
+            'options': '-vn'
+        }
+        audio_source = discord.FFmpegPCMAudio(video_url, **ffmpeg_options)
+
+        ctx.voice_client.play(audio_source, after=lambda e: self._play_next(ctx))
+
+
 
     @commands.command()
     async def join(self, ctx: commands.Context):
@@ -29,44 +54,11 @@ class Music(commands.Cog):
 
     @commands.command()
     async def leave(self, ctx: commands.Context):
-        if ctx.voice_client is None:
-            await ctx.send("I'm not in a voice channel!")
-            return
-        
-        await ctx.voice_client.disconnect(force=True)
-
-
-    async def _play_audio(self, ctx: commands.Context, url: str):
-        """ Helper function to queue and play audio """
-        
-        ydl_options= {
-            'format': 'bestaudio/best',
-            'quiet': True,
-            'extract_flat': False,
-        }
-
-        #TODO: implement this later for dealing with playlists
-        # guild_id = ctx.guild.id
-        # if guild_id not in self.queue:
-        #     self.queue[guild_id] = []
-
-        try: 
-            with yt_dlp.YoutubeDL(ydl_options) as ydl:
-                info = ydl.extract_info(url, download=False) 
-                video_url = info['url']
-                video_title = info.get('title', 'Unknown title')
-        except Exception as e:
-            await ctx.send(f"Error with url: {e}")
-            return
-        
-        ffmpeg_options = {
-            'before_options': '-reconnect 1 -reconnect_streamed 1',
-            'options': '-vn'
-        }
-
-        audio_source = discord.FFmpegPCMAudio(video_url, **ffmpeg_options)
-
-        ctx.voice_client.play(audio_source)
+        if ctx.voice_client:
+            await ctx.voice_client.disconnect(force=True)
+            # clear queue if bot leaves
+            if ctx.guild.id in self.queue:
+                del self.queue[ctx.guild.id]
 
 
     @commands.command()
@@ -74,14 +66,40 @@ class Music(commands.Cog):
         # check if audio is playing 
         if ctx.voice_client is None:
             if ctx.author.voice:
-                voice_channel = ctx.author.voice.channel
-                await voice_channel.connect()
+                await ctx.voice.channel.connect()
             else:
                 await ctx.send(f"{ctx.author.mention}, join a voice channel first.")
                 return
 
-        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
-            ctx.voice_client.stop()
+        queue = self._get_queue(ctx.guild.id)
 
-        await self._play_audio(ctx, url)
+        ydl_options = {'format': 'bestaudio/best', 'quiet': True}
 
+        try:
+            with yt_dlp.YoutubeDL(ydl_options) as ydl:
+                info = ydl.extract_info(url, download=False, process=False)
+
+                # Check for playlist
+                if 'entries' in info:
+                    for entry in info['entries']:
+                        entry_info = ydl.extract_info(entry['url'], download=False, process=False)
+                        song = {
+                            'title': entry_info.get('title', 'Unknown Title'),
+                            'video_url': entry_info['url']
+                        }
+                        queue.append(song)
+                # Handle single video request
+                else:
+                    song = {
+                        'title': info.get('title', 'Unknown Title'),
+                        'video_url': info['url']
+                    }
+                    #TODO: Implement overwriting capabilites
+                    ...
+        except Exception as e:
+            await ctx.send(f"An error occurred: {e}")
+
+        if not ctx.voice_client.is_playing():
+            self._play_next(ctx)
+
+    #TODO: Implement !skip and !queue
