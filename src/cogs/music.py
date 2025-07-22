@@ -103,3 +103,6 @@ class Music(commands.Cog):
             self._play_next(ctx)
 
     #TODO: Implement !skip and !queue
+
+async def setup(bot: commands.Bot):
+    await bot.add_cog(Music(bot))
