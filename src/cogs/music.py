@@ -46,7 +46,7 @@ class Music(commands.Cog):
                 await ctx.send(f"{self.user.mention}, join a voice channel first. ")
 
         #NOTE: For debugging
-        await ctx.send("v0.02")
+        await ctx.send("v0.05")
         
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
             try: 
@@ -76,6 +76,14 @@ class Music(commands.Cog):
         self.queue.clear()
         
         await ctx.send("Queue cleared.")
+
+    @commands.command(name="skip")
+    async def skip(self, ctx: commands.Context) -> None:
+        if ctx.voice_client.is_playing():
+            await ctx.voice_client.stop()
+        else:
+            await ctx.send("No song is playing.")
+
             
 
 async def setup(bot: commands.Bot):
