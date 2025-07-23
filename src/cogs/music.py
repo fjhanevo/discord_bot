@@ -32,7 +32,7 @@ class Music(commands.Cog):
 
             ctx.voice_client.play(audio_src, after=lambda e: self.bot.loop.create_task(self._play_audio(ctx)))
 
-            await ctx.send(f"Now playing: '{song['title']}'")
+            await ctx.send(f"🎶Now playing: '{song['title']}'")
 
 
 
@@ -46,7 +46,7 @@ class Music(commands.Cog):
                 await ctx.send(f"{self.user.mention}, join a voice channel first. ")
 
         #NOTE: For debugging
-        await ctx.send("v0.05")
+        await ctx.send("v0.06")
         
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
             try: 
@@ -83,6 +83,22 @@ class Music(commands.Cog):
             await ctx.voice_client.stop()
         else:
             await ctx.send("No song is playing.")
+
+    @commands.command(name="pause")
+    async def pause(self, ctx: commands.Context) -> None:
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.pause()
+            await ctx.send("⏸️ Paused the music.")
+        else:
+            await ctx.send("❌Nothing is playing right now.")
+
+    @commands.command(name="resume")
+    async def resume(self, ctx: commands.Context) -> None:
+        if ctx.voice_client.is_paused():
+            ctx.voice_client.resume()
+            await ctx.send("▶️ Resumed the music.")
+        else:
+            await ctx.send("❌Nothing is playing right now.")
 
             
 
