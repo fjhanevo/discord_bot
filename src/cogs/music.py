@@ -4,12 +4,18 @@ from discord.ext import commands
 import yt_dlp
 
 
+# ytdl_format_opts: dict = {
 ytdl_opts: dict = {
     'format': 'bestaudio/best',
     'quiet': True,
     'extract_flat': False,
     'skip_download': True,
-    'no_playlist': True
+    'no_playlist': True,
+}
+
+ytdl_playlist_opts: dict = {
+    'extract_flat': True,
+    'quiet': True,
 }
 
 ffmpeg_opts: dict = {
@@ -29,11 +35,29 @@ class Music(commands.Cog):
             song: dict = self.queue.pop(0)
 
             audio_src = discord.FFmpegPCMAudio(song['source'], **ffmpeg_opts)
+            #NOTE: Debugging
+            print(f"Audio: {type(audio_src)}")
 
             ctx.voice_client.play(audio_src, after=lambda e: self.bot.loop.create_task(self._play_audio(ctx)))
 
-            await ctx.send(f"🎶Now playing: '{song['title']}'")
+            await ctx.send(f"🎶Now playing: '{song['title']}' 🎶")
+    
+    @commands.command(name="join")
+    async def join(self, ctx: commands.Context) -> None:
+        if ctx.author.voice is None:
+            await ctx.send("Join a voice channel first.")
+            return
 
+        channel = ctx.author.voice.channel
+        if ctx.voice_client is not None:
+
+            # if already in channel move to users channel
+            await ctx.voice_client.move_to(channel)
+        else:
+            await channel.connect()
+            
+        #NOTE: For debugging
+        await ctx.send("v0.10")
 
 
     @commands.command(name="play")
@@ -45,8 +69,6 @@ class Music(commands.Cog):
             else:
                 await ctx.send(f"{self.user.mention}, join a voice channel first. ")
 
-        #NOTE: For debugging
-        await ctx.send("v0.06")
         
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
             try: 
@@ -82,7 +104,7 @@ class Music(commands.Cog):
         if ctx.voice_client.is_playing():
             await ctx.voice_client.stop()
         else:
-            await ctx.send("No song is playing.")
+            await ctx.send("❌No song is playing.❌")
 
     @commands.command(name="pause")
     async def pause(self, ctx: commands.Context) -> None:
@@ -98,9 +120,7 @@ class Music(commands.Cog):
             ctx.voice_client.resume()
             await ctx.send("▶️ Resumed the music.")
         else:
-            await ctx.send("❌Nothing is playing right now.")
-
-            
+            await ctx.send("❌Nothing is playing right now.❌")
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Music(bot))
