@@ -66,8 +66,13 @@ class Music(commands.Cog):
         else:
             await channel.connect()
             
-        #NOTE: For debugging
-        await ctx.send("v0.10")
+    @commands.command(name="leave")
+    async def leave(self, ctx: commands.Context) -> None:
+        if ctx.voice_client is None:
+            await ctx.send("Not in a channel.")
+            return
+
+        await ctx.voice_client.disconnect(force=False)
 
 
     @commands.command(name="play")
