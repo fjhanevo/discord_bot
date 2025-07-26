@@ -2,6 +2,7 @@
 import discord
 from discord.ext import commands
 import yt_dlp
+import asyncio
 
 
 # ytdl_format_opts: dict = {
@@ -34,13 +35,22 @@ class Music(commands.Cog):
         if len(self.queue) > 0:
             song: dict = self.queue.pop(0)
 
-            audio_src = discord.FFmpegPCMAudio(song['source'], **ffmpeg_opts)
-            #NOTE: Debugging
-            print(f"Audio: {type(audio_src)}")
+            if 'source' not in song:
+                try:
+                    with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
+                        info: dict = await asyncio.to_thread(
+                            lambda: ydl.extract_info(song['webpage_url'], download=False)
+                        )
+                        song['source'] = info['url']
+                except Exception as e:
+                    await ctx.send(f"Error processing song {song['title']}: {e}")
+                    await self._play_audio(ctx)
+                    return
 
-            ctx.voice_client.play(audio_src, after=lambda e: self.bot.loop.create_task(self._play_audio(ctx)))
-
-            await ctx.send(f"🎶Now playing: '{song['title']}' 🎶")
+            if ctx.voice_client:
+                audio_src: discord.player.FFmpegPCMAudio = discord.FFmpegPCMAudio(song['source'], **ffmpeg_opts)
+                ctx.voice_client.play(audio_src, after=lambda e: self.bot.loop.create_task(self._play_audio(ctx)))
+                await ctx.send(f"🎶Now playing: '{song['title']}' 🎶")
     
     @commands.command(name="join")
     async def join(self, ctx: commands.Context) -> None:
@@ -62,32 +72,25 @@ class Music(commands.Cog):
 
     @commands.command(name="play")
     async def play(self, ctx: commands.Context, *, url: str) -> None:
-        songs = []
+        # songs = []
         if ctx.voice_client is None:
             if ctx.author.voice:
                 await ctx.author.voice.channel.connect()
             else:
                 await ctx.send(f"{self.user.mention}, join a voice channel first. ")
 
-        
-        with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
-            try: 
+        if "playlist?list=" in url:
+            with yt_dlp.YoutubeDL(ytdl_playlist_opts) as ydl:
                 info: dict = ydl.extract_info(url, download=False)
-            except Exception as e:
-                await ctx.send(f"An error occured: {e}")
-                return
+                for entry in info['entries']:
+                    self.queue.append({'webpage_url': entry['url'], 'title': entry.get('title', 'Unknown title')})
+            await ctx.send(f"✅ Added {len(info['entries'])} songs to the queue.")
 
-        # Check if info is a playlist
-        if "entries" in info:
-            for entry in info['entries']:
-                songs.append({'source': entry['url'], 'title': entry['title']})
-            await ctx.send(f"Added {len(songs)} songs to the queue.")
         else:
-            songs.append({'source': info['url'], 'title': info['title']})
-            await ctx.send(f"Added '{info['title']}' to the queue.")
-
-        self.queue.extend(songs)
-
+            with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
+                info: dict = ydl.extract_info(url, download=False)
+                self.queue.append({'webpage_url': info['url'], 'title': info.get('title', 'Unknown title')})
+        
         if not ctx.voice_client.is_playing():
             await self._play_audio(ctx)
 
