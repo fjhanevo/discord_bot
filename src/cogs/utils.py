@@ -30,5 +30,29 @@ class Utils(commands.Cog):
             if len(vc.channel.members) == 1:
                 await vc.disconnect(force=False)
 
-async def setup(bot: commands.Bot):
+    @commands.command(name="join")
+    async def join(self, ctx: commands.Context) -> None:
+        if ctx.author.voice is None:
+            await ctx.send("Join a voice channel first.")
+            return
+
+        channel = ctx.author.voice.channel
+        if ctx.voice_client is not None:
+
+            # if already in channel move to users channel
+            await ctx.voice_client.move_to(channel)
+        else:
+            await channel.connect()
+            
+    @commands.command(name="leave")
+    async def leave(self, ctx: commands.Context) -> None:
+        if ctx.voice_client is None:
+            await ctx.send("Not in a channel.")
+            return
+
+        await ctx.voice_client.disconnect(force=False)
+
+
+
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Utils(bot))

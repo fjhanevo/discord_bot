@@ -52,28 +52,6 @@ class Music(commands.Cog):
                 ctx.voice_client.play(audio_src, after=lambda e: self.bot.loop.create_task(self._play_audio(ctx)))
                 await ctx.send(f"🎶Now playing: '{song['title']}' 🎶")
     
-    @commands.command(name="join")
-    async def join(self, ctx: commands.Context) -> None:
-        if ctx.author.voice is None:
-            await ctx.send("Join a voice channel first.")
-            return
-
-        channel = ctx.author.voice.channel
-        if ctx.voice_client is not None:
-
-            # if already in channel move to users channel
-            await ctx.voice_client.move_to(channel)
-        else:
-            await channel.connect()
-            
-    @commands.command(name="leave")
-    async def leave(self, ctx: commands.Context) -> None:
-        if ctx.voice_client is None:
-            await ctx.send("Not in a channel.")
-            return
-
-        await ctx.voice_client.disconnect(force=False)
-
 
     @commands.command(name="play")
     async def play(self, ctx: commands.Context, *, url: str) -> None:
@@ -130,5 +108,5 @@ class Music(commands.Cog):
         else:
             await ctx.send("❌Nothing is playing right now.❌")
 
-async def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Music(bot))
